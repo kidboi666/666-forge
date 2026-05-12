@@ -1,0 +1,14 @@
+{
+  "name": "666-forge",
+  "owner": {
+    "name": "kidboi666",
+    "email": "kidboi666@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "forge",
+      "source": ".",
+      "description": "Harness workflow plugin for Claude Code: GROUND/APPLY/VERIFY/ADAPT serial model with Codex delegation."
+    }
+  ]
+}
