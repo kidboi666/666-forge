@@ -7,7 +7,10 @@
   "plugins": [
     {
       "name": "forge",
-      "source": ".",
+      "source": {
+        "source": "github",
+        "repo": "kidboi666/666-forge"
+      },
       "description": "Harness workflow plugin for Claude Code: GROUND/APPLY/VERIFY/ADAPT serial model with Codex delegation."
     }
   ]
