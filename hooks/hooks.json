@@ -5,6 +5,10 @@
       "hooks": [
         {
           "type": "command",
+          "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/allow_plugin_scripts.py"
+        },
+        {
+          "type": "command",
           "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/block_dangerous.py"
         },
         {
