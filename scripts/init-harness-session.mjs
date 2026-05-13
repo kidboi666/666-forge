@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 
@@ -20,6 +21,7 @@ const projectDir = resolve(args.get('project-dir') ?? process.cwd());
 const projectSlug = basename(projectDir);
 const task = args.get('task') ?? '';
 const finalizeExisting = args.get('finalize-existing') === 'true';
+const skipInstall = args.get('skip-install') === 'true';
 
 const ACTIVE_STATUSES = new Set(['running', 'waiting']);
 
@@ -59,6 +61,53 @@ if (activeSessions.length > 0) {
     writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`);
   }
 }
+
+const detectPackageManager = (dir) => {
+  if (existsSync(resolve(dir, 'pnpm-lock.yaml'))) {
+    return { name: 'pnpm', command: 'pnpm', args: ['install'] };
+  }
+  if (existsSync(resolve(dir, 'yarn.lock'))) {
+    return { name: 'yarn', command: 'yarn', args: ['install'] };
+  }
+  if (existsSync(resolve(dir, 'bun.lockb')) || existsSync(resolve(dir, 'bun.lock'))) {
+    return { name: 'bun', command: 'bun', args: ['install'] };
+  }
+  if (existsSync(resolve(dir, 'package-lock.json'))) {
+    return { name: 'npm', command: 'npm', args: ['install'] };
+  }
+  return null;
+};
+
+const ensureNodeModules = () => {
+  if (skipInstall) return;
+  if (!existsSync(resolve(projectDir, 'package.json'))) return;
+  if (existsSync(resolve(projectDir, 'node_modules'))) return;
+  const pm = detectPackageManager(projectDir);
+  if (!pm) {
+    process.stderr.write(
+      `[init-harness-session] node_modules 누락 상태이지만 패키지 매니저 lockfile을 찾을 수 없습니다 (${projectDir}). 의존성을 수동 설치 후 다시 시도하세요.\n`,
+    );
+    return;
+  }
+  process.stderr.write(
+    `[init-harness-session] node_modules 누락 — ${pm.name} install을 실행합니다 (${projectDir}).\n`,
+  );
+  const result = spawnSync(pm.command, pm.args, { cwd: projectDir, stdio: 'inherit' });
+  if (result.error) {
+    throw new Error(
+      `[init-harness-session] ${pm.name} install 실행 실패: ${result.error.message}. ` +
+        '의존성을 직접 설치하거나 --skip-install 플래그로 우회하세요.',
+    );
+  }
+  if (result.status !== 0) {
+    throw new Error(
+      `[init-harness-session] ${pm.name} install 종료 코드 ${result.status}. ` +
+        '의존성을 직접 설치하거나 --skip-install 플래그로 우회하세요.',
+    );
+  }
+};
+
+ensureNodeModules();
 
 const pad = (value) => String(value).padStart(2, '0');
 const makeSessionId = () => {
