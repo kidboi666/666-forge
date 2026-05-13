@@ -13,11 +13,12 @@ task and stop.
 
 ## Read
 
-- `AGENTS.md`
+- `AGENTS.md` if present
 - relevant `.claude/rules/*.md`
+- `.forge.json` if present (especially `protected_paths`)
 - current git diff
 - related code
-- `../rx-api-server` contract files only when the task involves API integration
+- external contract files only when the task explicitly involves them
 
 ## Session Setup
 
@@ -55,7 +56,7 @@ Use the `grounder` agent.
 ## Rules
 
 - Do not edit app code.
-- Do not modify `../rx-api-server`.
+- Do not modify any path listed in `.forge.json -> protected_paths`.
 - Do not invent API endpoints, fields, enum values, or response shapes.
 - Do not expose raw Codex output.
 - Stop after GROUND. Do not advance to APPLY.

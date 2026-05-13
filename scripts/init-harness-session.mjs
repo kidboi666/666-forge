@@ -2,6 +2,7 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
+import { loadForgeConfig } from './load-forge-config.mjs';
 
 const args = new Map();
 for (let i = 2; i < process.argv.length; i += 1) {
@@ -109,6 +110,41 @@ const ensureNodeModules = () => {
 
 ensureNodeModules();
 
+const detectVerifyCommands = () => {
+  const config = loadForgeConfig(projectDir);
+  const fromConfig = {
+    typecheck: config?.verify?.typecheck ?? null,
+    test: config?.verify?.test ?? null,
+  };
+  if (fromConfig.typecheck && fromConfig.test) {
+    return fromConfig;
+  }
+  const packageJsonPath = resolve(projectDir, 'package.json');
+  if (!existsSync(packageJsonPath)) {
+    return fromConfig;
+  }
+  let scripts = {};
+  try {
+    const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+    scripts = pkg.scripts ?? {};
+  } catch {
+    return fromConfig;
+  }
+  const pm = detectPackageManager(projectDir);
+  if (!pm) return fromConfig;
+  const runner = pm.name === 'npm' ? 'npm run' : pm.name;
+  const typecheckScript = ['typecheck', 'type-check', 'tsc', 'check-types'].find(
+    (name) => scripts[name],
+  );
+  const testScript = ['test:related', 'test'].find((name) => scripts[name]);
+  return {
+    typecheck: fromConfig.typecheck ?? (typecheckScript ? `${runner} ${typecheckScript}` : null),
+    test: fromConfig.test ?? (testScript ? `${runner} ${testScript}` : null),
+  };
+};
+
+const verifyCommands = detectVerifyCommands();
+
 const pad = (value) => String(value).padStart(2, '0');
 const makeSessionId = () => {
   const now = new Date();
@@ -154,6 +190,7 @@ const state = {
   },
   last_failure: null,
   failure_counts: {},
+  verify_commands: verifyCommands,
 };
 
 const files = new Map([

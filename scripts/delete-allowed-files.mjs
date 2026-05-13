@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { existsSync, lstatSync, readFileSync, readdirSync, statSync, unlinkSync } from 'node:fs';
 import { isAbsolute, relative, resolve } from 'node:path';
+import { loadForgeConfig, resolveProtectedPaths, isInsideAny } from './load-forge-config.mjs';
 
 const args = new Map();
 const positional = [];
@@ -25,6 +26,8 @@ for (let i = 2; i < process.argv.length; i += 1) {
 
 const projectDir = resolve(args.get('project-dir') ?? process.cwd());
 const sessionsRoot = resolve(projectDir, '.agents', 'sessions');
+const forgeConfig = loadForgeConfig(projectDir);
+const protectedRoots = resolveProtectedPaths(projectDir, forgeConfig);
 const ACTIVE_STATUSES = new Set(['running', 'waiting']);
 const APPROVED_STATUSES = new Set(['approved', 'auto_approved']);
 const SENSITIVE_WRITE_PATTERNS = [
@@ -123,8 +126,10 @@ for (const { relativePath } of targets) {
   if (!allowedFiles.has(relativePath)) {
     throw new Error(`Delete target is outside allowed_files: ${relativePath}`);
   }
-  if (relativePath.startsWith('../rx-api-server/') || relativePath.includes('/../rx-api-server/')) {
-    throw new Error(`Server repo target is not allowed: ${relativePath}`);
+  const absolutePath = resolve(projectDir, relativePath);
+  const blockingRoot = isInsideAny(absolutePath, protectedRoots);
+  if (blockingRoot) {
+    throw new Error(`Protected path target is not allowed (${blockingRoot}): ${relativePath}`);
   }
   if (isSensitivePath(relativePath)) {
     throw new Error(`Sensitive file deletion is not allowed: ${relativePath}`);

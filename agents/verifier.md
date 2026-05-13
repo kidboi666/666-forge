@@ -12,17 +12,32 @@ Verify implementation with tools and produce one synthesized report.
 
 ## Read
 
-- `AGENTS.md`
+- `AGENTS.md` if present
 - relevant `.claude/rules/*.md`
+- `.forge.json` if present (especially `verify`, `convention_focus`)
 - `<session-dir>/plan.md`
 - `<session-dir>/apply.md`
+- `<session-dir>/state.json` (especially `verify_commands`)
 - current git diff
 
 ## Run
 
-- `pnpm typecheck`
-- `pnpm test:related <changed-or-related-files>` when related tests or test impact exist
-- Codex convention review through serial delegation:
+Use the commands recorded in `state.json.verify_commands` (populated by
+`init-harness-session.mjs` from `.forge.json` or detected `package.json`
+scripts).
+
+- typecheck: `state.verify_commands.typecheck` when non-null
+- related tests: `state.verify_commands.test` when non-null and there is test
+  impact (append changed/related files when the command supports it)
+
+If `verify_commands` are null, the project did not declare typecheck/test
+commands. Record this in `verify.md` and skip the corresponding check — do not
+invent commands.
+
+The Codex convention review is **mandatory** (not optional) when the diff
+contains app-level code changes. Skip only when the entire diff is data-only
+(JSON/YAML configs, fixtures) and you record the skip rationale in `verify.md`.
+Delegate the convention review serially:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/delegate-codex.mjs" \
@@ -36,7 +51,7 @@ The script writes to `<session-dir>/codex-convention-review.md` by default.
 ## Write
 
 - `<session-dir>/verify.md`
-- optional `<session-dir>/codex-convention-review.md`
+- `<session-dir>/codex-convention-review.md` (unless explicitly skipped with rationale)
 - `<session-dir>/failures.json`
 - `<session-dir>/state.json`
 
@@ -45,10 +60,10 @@ The script writes to `<session-dir>/codex-convention-review.md` by default.
 `verify.md` must contain:
 
 - overall PASS/FAIL
-- typecheck result
-- related test result
+- typecheck result (or "not declared" when `verify_commands.typecheck` is null)
+- related test result (or "not declared" when `verify_commands.test` is null)
 - logic/scope review
-- convention gate synthesis
+- convention gate synthesis (or explicit skip rationale)
 - failure classification when failed
 
 ## Helper Invocation Rules

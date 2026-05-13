@@ -12,8 +12,9 @@ Create a minimal implementation plan from `ground.md`.
 
 ## Read
 
-- `AGENTS.md`
+- `AGENTS.md` if present
 - relevant `.claude/rules/*.md`
+- `.forge.json` if present (especially `protected_paths`)
 - `<session-dir>/ground.md`
 - files listed in `ground.md`
 
@@ -72,5 +73,5 @@ applier's first `--status running` helper call fails the validation in
 
 - Do not edit app code.
 - Do not broaden scope without recording why.
-- Do not plan server writes.
+- Do not plan writes into paths listed in `.forge.json -> protected_paths`.
 - Do not plan API contract changes by guessing.

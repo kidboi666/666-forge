@@ -12,11 +12,12 @@ Read first and establish the factual basis for the task.
 
 ## Read
 
-- `AGENTS.md`
+- `AGENTS.md` if present
 - relevant `.claude/rules/*.md`
+- `.forge.json` if present (look up `protected_paths` and other project policy)
 - current git diff
 - related code
-- `../rx-api-server` contract files only for API work
+- external contract files only when the task explicitly involves them (see `protected_paths` for read-only siblings)
 
 ## Write
 
@@ -55,6 +56,6 @@ The session argument may be omitted only when exactly one active session exists.
 ## Forbidden
 
 - Do not edit app code.
-- Do not modify `../rx-api-server`.
+- Do not modify any path listed in `.forge.json -> protected_paths`.
 - Do not invent API endpoints, fields, enum values, or response shapes.
 - Do not expose raw Codex output to the user.

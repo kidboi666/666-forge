@@ -1,6 +1,6 @@
 {
   "name": "forge",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Harness workflow plugin for rx-app-mobile: GROUND/APPLY/VERIFY/ADAPT serial model.",
   "author": {
     "name": "kidboi666",

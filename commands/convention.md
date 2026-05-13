@@ -12,8 +12,9 @@ If no active session exists, ask the user and stop.
 
 ## Read
 
-- `AGENTS.md`
+- `AGENTS.md` if present
 - relevant `.claude/rules/*.md`
+- `.forge.json -> convention_focus` if present
 - `<session-dir>/plan.md`
 - current git diff
 

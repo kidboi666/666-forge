@@ -10,7 +10,8 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, isAbsolute, resolve } from 'node:path';
+import { loadForgeConfig, resolveProtectedPaths, isInsideAny } from './load-forge-config.mjs';
 
 const args = new Map();
 for (let i = 2; i < process.argv.length; i += 1) {
@@ -28,6 +29,8 @@ for (let i = 2; i < process.argv.length; i += 1) {
 
 const cwd = resolve(args.get('cwd') ?? process.cwd());
 const mode = args.get('mode') ?? 'read-only';
+const forgeConfig = loadForgeConfig(cwd);
+const protectedRoots = resolveProtectedPaths(cwd, forgeConfig);
 
 if (!['read-only', 'convention-review', 'convention-fix', 'adapt-review'].includes(mode)) {
   throw new Error(`Unsupported mode: ${mode}`);
@@ -219,7 +222,8 @@ const listChangedFiles = () => {
 };
 
 const isAllowedWrite = (file) => {
-  if (file.startsWith('../rx-api-server/') || file.includes('/../rx-api-server/')) {
+  const absolutePath = isAbsolute(file) ? resolve(file) : resolve(cwd, file);
+  if (isInsideAny(absolutePath, protectedRoots)) {
     return false;
   }
   return writeScope.includes(file);
@@ -268,7 +272,7 @@ updateDelegation('running');
 
 const beforeSnapshot = snapshotChangedFiles();
 try {
-  const codexArgs = ['exec', '--full-auto', modePrompt];
+  const codexArgs = ['exec', '--sandbox', 'workspace-write', modePrompt];
   const result = spawnSync('codex', codexArgs, {
     cwd,
     encoding: 'utf8',

@@ -12,8 +12,9 @@ Implement the approved `plan.md` with minimal changes.
 
 ## Read
 
-- `AGENTS.md`
+- `AGENTS.md` if present
 - relevant `.claude/rules/*.md`
+- `.forge.json` if present (especially `protected_paths`)
 - `<session-dir>/ground.md`
 - `<session-dir>/plan.md`
 - `<session-dir>/state.json`
@@ -80,6 +81,6 @@ If delegated, wait for completion and inspect the diff before continuing.
 
 - Do not edit code unless `state.json.approval.status` is `approved` or `auto_approved`.
 - Do not modify files outside `allowed_files`.
-- Do not modify `../rx-api-server`.
+- Do not modify any path listed in `.forge.json -> protected_paths`.
 - Do not perform broad refactors.
 - Do not change implementation intent during convention cleanup.

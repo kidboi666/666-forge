@@ -7,8 +7,9 @@ You are the harness orchestrator. Detailed phase behavior lives in the
 respective sub-agents (`grounder`, `planner`, `applier`, `verifier`,
 `adapter`). This file describes orchestration only.
 
-Project policy: read `AGENTS.md` and relevant `.claude/rules/*.md` before each
-phase. Do not duplicate or override them.
+Project policy: read `AGENTS.md` (if present), relevant `.claude/rules/*.md`,
+and `.forge.json` (if present) before each phase. Do not duplicate or override
+them.
 
 ## Input
 
@@ -35,6 +36,31 @@ phase. Do not duplicate or override them.
   against the session directory — `scope_guard.py` rejects them silently
   outside APPLY. Read/Write the paths directly.
 
+## Project Config: `.forge.json` (optional)
+
+The harness reads `<project-root>/.forge.json` if it exists. All fields are
+optional:
+
+```json
+{
+  "protected_paths": ["../sibling-repo"],
+  "verify": {
+    "typecheck": "pnpm typecheck",
+    "test": "pnpm test:related"
+  },
+  "convention_focus": ["module direction", "logging conventions"]
+}
+```
+
+- `protected_paths`: extra paths blocked from writes (relative to the project
+  root or absolute). Applies to Edit/Write/MultiEdit, write-like Bash
+  redirections, and the deletion helper.
+- `verify.typecheck` / `verify.test`: exact commands the verifier runs. If
+  omitted, `init-harness-session.mjs` tries to detect them from
+  `package.json` scripts + the project's package manager. If still null, the
+  verifier records "not declared" and skips that check.
+- `convention_focus`: free-form hints fed to the convention gate prompt.
+
 ## Session Setup
 
 ```bash
@@ -51,8 +77,8 @@ each phase agent on first Write — do not pre-touch or pre-Read them.
 
 ## Phase 1: GROUND — `grounder` agent
 
-Input: task, AGENTS.md, related rules, current diff, related code (and server
-contracts only when the task involves API integration).
+Input: task, project policy files, current diff, related code, and external
+contract files only when the task involves them.
 
 Output: `ground.md` (observed facts, inference, affected files, open
 questions). Optional `codex-ground.md` for read-only Codex second opinion.
@@ -100,14 +126,18 @@ or auto_approved, applier has flipped state to VERIFY.
 
 ## Phase 3: VERIFY — `verifier` agent + Codex convention gate
 
-Run `pnpm typecheck`. Run `pnpm test:related <changed-or-related-files>` when
-there is test impact. Delegate Codex convention review serially and
-synthesize results into a single `verify.md`. Claude Code owns type/test
-failure interpretation and logic review; Codex owns convention-risk
+Run the typecheck and related-test commands declared in
+`state.json.verify_commands`. If a command is null, record "not declared" in
+`verify.md` — do not invent one.
+
+Delegate Codex convention review serially (mandatory for app-level diffs;
+skip only when the entire diff is data-only and the rationale is recorded in
+`verify.md`). Synthesize results into a single `verify.md`. Claude Code owns
+type/test failure interpretation and logic review; Codex owns convention-risk
 detection.
 
-Output: `verify.md`, `codex-convention-review.md`, updated `failures.json`
-when anything fails.
+Output: `verify.md`, `codex-convention-review.md` (unless explicitly skipped
+with rationale), updated `failures.json` when anything fails.
 
 Advance condition: PASS → final report. FAIL → ADAPT.
 
@@ -148,8 +178,8 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/set-harness-phase.mjs" \
 - ...
 
 검증:
-- pnpm typecheck: ...
-- pnpm test:related: ...
+- typecheck (<command or "not declared">): ...
+- related tests (<command or "not declared">): ...
 - Codex convention gate: ...
 
 남은 위험:
